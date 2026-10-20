@@ -120,6 +120,8 @@ export default function Home() {
             history={history}
             onNavigate={(tab) => setCurrentTab(tab as NavTab)}
             onLoadSample={handleLoadSample}
+            customApiKey={customApiKey}
+            onResumeUpdate={handleSaveResume}
           />
         )}
 
