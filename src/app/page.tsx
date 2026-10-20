@@ -9,6 +9,10 @@ import DiffView from "@/components/DiffView";
 import SkillGapView from "@/components/SkillGapView";
 import ExportView from "@/components/ExportView";
 import HistoryView from "@/components/HistoryView";
+import ScanView from "@/components/ScanView";
+import CoverLetterView from "@/components/CoverLetterView";
+import LinkedInView from "@/components/LinkedInView";
+import InterviewPrepView from "@/components/InterviewPrepView";
 import ApiKeyModal from "@/components/ApiKeyModal";
 import { SAMPLE_MASTER_RESUME } from "@/lib/sampleResume";
 import { MasterResume, TailoredResult, HistoryEntry } from "@/types/resume";
@@ -127,6 +131,14 @@ export default function Home() {
           />
         )}
 
+        {currentTab === "scan" && (
+          <ScanView
+            resume={masterResume}
+            onNavigate={(tab) => setCurrentTab(tab as NavTab)}
+            customApiKey={customApiKey}
+          />
+        )}
+
         {currentTab === "tailor" && (
           <TailorView
             resume={masterResume}
@@ -148,6 +160,31 @@ export default function Home() {
           <SkillGapView
             result={tailoredResult}
             onNavigate={(tab) => setCurrentTab(tab as NavTab)}
+          />
+        )}
+
+        {currentTab === "coverletter" && (
+          <CoverLetterView
+            resume={masterResume}
+            result={tailoredResult}
+            onNavigate={(tab) => setCurrentTab(tab as NavTab)}
+            customApiKey={customApiKey}
+          />
+        )}
+
+        {currentTab === "linkedin" && (
+          <LinkedInView
+            resume={masterResume}
+            result={tailoredResult}
+            onNavigate={(tab) => setCurrentTab(tab as NavTab)}
+            customApiKey={customApiKey}
+          />
+        )}
+
+        {currentTab === "interview" && (
+          <InterviewPrepView
+            resume={masterResume}
+            customApiKey={customApiKey}
           />
         )}
 

@@ -15,12 +15,13 @@ import {
 } from "lucide-react";
 import ScoreGauge from "./ScoreGauge";
 import { MasterResume, TailoredResult, HistoryEntry } from "@/types/resume";
+import { NavTab } from "./Navbar";
 
 interface DashboardViewProps {
   resume: MasterResume;
   result: TailoredResult | null;
   history: HistoryEntry[];
-  onNavigate: (tab: "profile" | "tailor" | "diff" | "skills" | "export" | "history") => void;
+  onNavigate: (tab: NavTab) => void;
   onLoadSample: () => void;
 }
 
@@ -64,12 +65,20 @@ export default function DashboardView({
 
           <div className="mt-6 flex flex-wrap gap-3">
             <button
+              onClick={() => onNavigate("scan")}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-lg shadow-cyan-600/30 hover:scale-105 active:scale-95 transition-all"
+            >
+              <Sparkles className="w-4 h-4" />
+              Scan First (ATS Breakdown)
+              <ArrowRight className="w-4 h-4" />
+            </button>
+
+            <button
               onClick={() => onNavigate("tailor")}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-lg shadow-indigo-600/30 hover:scale-105 active:scale-95 transition-all"
             >
               <Target className="w-4 h-4" />
               Tailor Resume Now
-              <ArrowRight className="w-4 h-4" />
             </button>
 
             <button

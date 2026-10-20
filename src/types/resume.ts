@@ -59,6 +59,13 @@ export interface JobDescriptionRequirements {
   responsibilities: string[];
 }
 
+// Per-section ATS breakdown
+export interface SectionScore {
+  score: number;
+  label: string;
+  detail: string;
+}
+
 export interface ATSMatchScore {
   overall_score: number;
   keyword_score: number;
@@ -67,6 +74,59 @@ export interface ATSMatchScore {
   missing_keywords: string[];
   skill_gaps: string[];
   summary: string;
+  // Enhanced per-section breakdown
+  section_scores?: SectionScore[];
+  // Format compliance
+  format_checks?: FormatCheck[];
+}
+
+// Format compliance checker
+export interface FormatCheck {
+  rule: string;
+  passed: boolean;
+  detail: string;
+  severity: "critical" | "warning" | "info";
+}
+
+// Scan result — quick ATS analysis without tailoring
+export interface ScanResult {
+  job_title: string;
+  company: string;
+  seniority: string;
+  score: ATSMatchScore;
+  jd_requirements: JobDescriptionRequirements;
+  keyword_heatmap: KeywordHeatmapItem[];
+  readiness_verdict: "strong" | "moderate" | "weak";
+  recommendation: string;
+  timestamp: string;
+}
+
+export interface KeywordHeatmapItem {
+  keyword: string;
+  found: boolean;
+  importance: "critical" | "important" | "nice-to-have";
+  where_found?: string; // which section it was found in
+}
+
+// Interview preparation
+export interface InterviewQuestion {
+  category: "technical" | "behavioral" | "situational" | "system-design";
+  question: string;
+  why_likely: string;
+  star_framework?: {
+    situation: string;
+    task: string;
+    action: string;
+    result: string;
+  };
+  tips: string[];
+}
+
+export interface InterviewPrepResult {
+  role_title: string;
+  company: string;
+  questions: InterviewQuestion[];
+  timestamp: string;
 }
 
 export interface BulletDiff {
