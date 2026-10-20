@@ -1,18 +1,55 @@
 import { MasterResume, ATSMatchScore, FormatCheck, SectionScore, KeywordHeatmapItem } from "@/types/resume";
 
 /**
+ * Safely extracts all skills into a lowercase array, supporting tools_and_platforms, legacy tools, cloud, etc.
+ */
+export function getAllSkillsList(resume: MasterResume): string[] {
+  if (!resume || !resume.skills) return [];
+  const s = resume.skills as any;
+  const list: string[] = [];
+
+  const add = (val: any) => {
+    if (Array.isArray(val)) {
+      val.forEach((item) => {
+        if (typeof item === "string" && item.trim()) list.push(item.toLowerCase().trim());
+      });
+    } else if (typeof val === "string" && val.trim()) {
+      val.split(",").forEach((item) => {
+        if (item.trim()) list.push(item.toLowerCase().trim());
+      });
+    }
+  };
+
+  add(s.languages);
+  add(s.frameworks);
+  add(s.tools_and_platforms);
+  add(s.tools);
+  add(s.cloud);
+  add(s.platforms);
+  add(s.devops);
+  add(s.concepts);
+
+  // Collect from any custom or dynamic keys
+  if (typeof s === "object") {
+    Object.keys(s).forEach((key) => {
+      if (!["languages", "frameworks", "tools_and_platforms", "tools", "cloud", "platforms", "devops", "concepts"].includes(key)) {
+        add(s[key]);
+      }
+    });
+  }
+
+  return Array.from(new Set(list));
+}
+
+/**
  * Extracts all searchable text tokens and skills from a resume.
  */
 export function extractResumeKeywords(resume: MasterResume): string[] {
+  if (!resume) return [];
   const set = new Set<string>();
 
   // Extract skills
-  const skills = resume.skills;
-  Object.values(skills).forEach((list) => {
-    if (Array.isArray(list)) {
-      list.forEach((s) => set.add(s.toLowerCase().trim()));
-    }
-  });
+  getAllSkillsList(resume).forEach((s) => set.add(s));
 
   // Extract from summary
   if (resume.summary) {
@@ -20,20 +57,22 @@ export function extractResumeKeywords(resume: MasterResume): string[] {
   }
 
   // Extract from experience bullets & roles
-  resume.experience.forEach((exp) => {
-    extractWords(exp.role).forEach((w) => set.add(w));
-    extractWords(exp.company).forEach((w) => set.add(w));
-    exp.bullets.forEach((b) => {
-      extractWords(b).forEach((w) => set.add(w));
+  (resume.experience || []).forEach((exp) => {
+    if (exp?.role) extractWords(exp.role).forEach((w) => set.add(w));
+    if (exp?.company) extractWords(exp.company).forEach((w) => set.add(w));
+    (exp?.bullets || []).forEach((b) => {
+      if (b) extractWords(b).forEach((w) => set.add(w));
     });
   });
 
   // Extract from projects
-  resume.projects.forEach((proj) => {
-    extractWords(proj.name).forEach((w) => set.add(w));
-    proj.technologies.forEach((t) => set.add(t.toLowerCase().trim()));
-    proj.bullets.forEach((b) => {
-      extractWords(b).forEach((w) => set.add(w));
+  (resume.projects || []).forEach((proj) => {
+    if (proj?.name) extractWords(proj.name).forEach((w) => set.add(w));
+    (proj?.technologies || []).forEach((t) => {
+      if (t) set.add(t.toLowerCase().trim());
+    });
+    (proj?.bullets || []).forEach((b) => {
+      if (b) extractWords(b).forEach((w) => set.add(w));
     });
   });
 
@@ -72,34 +111,30 @@ function keywordExists(keyword: string, tokens: Set<string>): boolean {
  * Gets which resume section a keyword is found in.
  */
 function findKeywordSection(keyword: string, resume: MasterResume): string | undefined {
+  if (!resume) return undefined;
   const kw = keyword.toLowerCase().trim();
 
   // Check skills first
-  const allSkills = [
-    ...resume.skills.languages,
-    ...resume.skills.frameworks,
-    ...resume.skills.tools_and_platforms,
-    ...resume.skills.concepts,
-  ].map((s) => s.toLowerCase());
+  const allSkills = getAllSkillsList(resume);
   if (allSkills.some((s) => s.includes(kw) || kw.includes(s))) return "Skills";
 
   // Check summary
-  if (resume.summary.toLowerCase().includes(kw)) return "Summary";
+  if ((resume.summary || "").toLowerCase().includes(kw)) return "Summary";
 
   // Check experience
-  for (const exp of resume.experience) {
-    const expText = [exp.role, exp.company, ...exp.bullets].join(" ").toLowerCase();
+  for (const exp of (resume.experience || [])) {
+    const expText = [exp.role, exp.company, ...(exp.bullets || [])].join(" ").toLowerCase();
     if (expText.includes(kw)) return `Experience (${exp.company})`;
   }
 
   // Check projects
-  for (const proj of resume.projects) {
-    const projText = [proj.name, ...proj.technologies, ...proj.bullets].join(" ").toLowerCase();
+  for (const proj of (resume.projects || [])) {
+    const projText = [proj.name, ...(proj.technologies || []), ...(proj.bullets || [])].join(" ").toLowerCase();
     if (projText.includes(kw)) return `Projects (${proj.name})`;
   }
 
   // Check education
-  for (const edu of resume.education) {
+  for (const edu of (resume.education || [])) {
     const eduText = [edu.degree, edu.institution, edu.details || ""].join(" ").toLowerCase();
     if (eduText.includes(kw)) return "Education";
   }
@@ -118,8 +153,8 @@ function computeSectionScores(
   const results: SectionScore[] = [];
 
   // 1. Experience Relevance
-  const expText = resume.experience
-    .flatMap((e) => [e.role, ...e.bullets])
+  const expText = (resume.experience || [])
+    .flatMap((e) => [e.role, ...(e.bullets || [])])
     .join(" ")
     .toLowerCase();
   const expMatches = jdKeywords.filter((kw) => expText.includes(kw.toLowerCase())).length;
@@ -131,12 +166,7 @@ function computeSectionScores(
   });
 
   // 2. Skills Match
-  const allSkills = [
-    ...resume.skills.languages,
-    ...resume.skills.frameworks,
-    ...resume.skills.tools_and_platforms,
-    ...resume.skills.concepts,
-  ].map((s) => s.toLowerCase());
+  const allSkills = getAllSkillsList(resume);
   const skillMatches = requiredSkills.filter((sk) =>
     allSkills.some((s) => s.includes(sk.toLowerCase()) || sk.toLowerCase().includes(s))
   ).length;
@@ -150,7 +180,7 @@ function computeSectionScores(
   });
 
   // 3. Keyword Density
-  const fullText = JSON.stringify(resume).toLowerCase();
+  const fullText = JSON.stringify(resume || {}).toLowerCase();
   const kwMatches = jdKeywords.filter((kw) => fullText.includes(kw.toLowerCase())).length;
   const kwScore = jdKeywords.length > 0 ? Math.round((kwMatches / jdKeywords.length) * 100) : 0;
   results.push({
@@ -160,7 +190,7 @@ function computeSectionScores(
   });
 
   // 4. Summary Alignment
-  const summaryText = resume.summary.toLowerCase();
+  const summaryText = (resume.summary || "").toLowerCase();
   const summaryMatches = jdKeywords.filter((kw) => summaryText.includes(kw.toLowerCase())).length;
   const summaryScore = jdKeywords.length > 0
     ? Math.round((summaryMatches / Math.min(jdKeywords.length, 8)) * 100)
@@ -172,8 +202,8 @@ function computeSectionScores(
   });
 
   // 5. Projects Relevance
-  const projText = resume.projects
-    .flatMap((p) => [p.name, ...p.technologies, ...p.bullets])
+  const projText = (resume.projects || [])
+    .flatMap((p) => [p.name, ...(p.technologies || []), ...(p.bullets || [])])
     .join(" ")
     .toLowerCase();
   const projMatches = jdKeywords.filter((kw) => projText.includes(kw.toLowerCase())).length;
@@ -220,12 +250,14 @@ export function generateKeywordHeatmap(
  */
 export function checkResumeFormat(resume: MasterResume): FormatCheck[] {
   const checks: FormatCheck[] = [];
+  if (!resume) return checks;
 
   // 1. Contact info completeness
-  const hasName = !!resume.contact.name?.trim();
-  const hasEmail = !!resume.contact.email?.trim();
-  const hasPhone = !!resume.contact.phone?.trim();
-  const hasLocation = !!resume.contact.location?.trim();
+  const contact = resume.contact || ({} as any);
+  const hasName = !!contact.name?.trim();
+  const hasEmail = !!contact.email?.trim();
+  const hasPhone = !!contact.phone?.trim();
+  const hasLocation = !!contact.location?.trim();
   const contactScore = [hasName, hasEmail, hasPhone, hasLocation].filter(Boolean).length;
   checks.push({
     rule: "Complete Contact Information",
@@ -237,18 +269,20 @@ export function checkResumeFormat(resume: MasterResume): FormatCheck[] {
   });
 
   // 2. Professional summary present
+  const summaryLength = (resume.summary || "").trim().length;
   checks.push({
     rule: "Professional Summary Present",
-    passed: resume.summary.trim().length >= 50,
-    detail: resume.summary.trim().length >= 50
+    passed: summaryLength >= 50,
+    detail: summaryLength >= 50
       ? "Summary is present and descriptive"
       : "Summary is too short or missing — ATS scanners look for a summary section",
-    severity: resume.summary.trim().length >= 50 ? "info" : "warning",
+    severity: summaryLength >= 50 ? "info" : "warning",
   });
 
   // 3. Consistent date formatting
-  const datePatterns = resume.experience.map((e) => e.dates);
-  const hasConsistentDates = datePatterns.every(
+  const expList = Array.isArray(resume.experience) ? resume.experience : [];
+  const datePatterns = expList.map((e) => e?.dates || "");
+  const hasConsistentDates = datePatterns.length > 0 && datePatterns.every(
     (d) => /\d{4}/.test(d) // At least contains a year
   );
   checks.push({
@@ -261,11 +295,14 @@ export function checkResumeFormat(resume: MasterResume): FormatCheck[] {
   });
 
   // 4. Standard section headings present
+  const allSkills = getAllSkillsList(resume);
+  const projList = Array.isArray(resume.projects) ? resume.projects : [];
+  const eduList = Array.isArray(resume.education) ? resume.education : [];
   const hasSections = {
-    experience: resume.experience.length > 0,
-    skills: Object.values(resume.skills).some((arr) => arr.length > 0),
-    education: resume.education.length > 0,
-    projects: resume.projects.length > 0,
+    experience: expList.length > 0,
+    skills: allSkills.length > 0,
+    education: eduList.length > 0,
+    projects: projList.length > 0,
   };
   const sectionCount = Object.values(hasSections).filter(Boolean).length;
   checks.push({
@@ -279,9 +316,9 @@ export function checkResumeFormat(resume: MasterResume): FormatCheck[] {
 
   // 5. No overly long bullets
   const allBullets = [
-    ...resume.experience.flatMap((e) => e.bullets),
-    ...resume.projects.flatMap((p) => p.bullets),
-  ];
+    ...expList.flatMap((e) => e?.bullets || []),
+    ...projList.flatMap((p) => p?.bullets || []),
+  ].filter((b) => typeof b === "string");
   const longBullets = allBullets.filter((b) => b.length > 200).length;
   checks.push({
     rule: "Concise Bullet Points",
@@ -327,7 +364,7 @@ export function checkResumeFormat(resume: MasterResume): FormatCheck[] {
   });
 
   // 8. Skills list not too sparse
-  const totalSkills = Object.values(resume.skills).flat().length;
+  const totalSkills = allSkills.length;
   checks.push({
     rule: "Adequate Skills List",
     passed: totalSkills >= 8,

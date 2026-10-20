@@ -175,3 +175,108 @@ export interface HistoryEntry {
   changes_count: number;
   result: TailoredResult;
 }
+
+/**
+ * Normalizes any partial or legacy resume object into a complete, safe MasterResume.
+ * Guarantees all skills arrays (including tools_and_platforms) and sub-sections exist.
+ */
+export function normalizeResume(raw: any): MasterResume {
+  if (!raw || typeof raw !== "object") {
+    return {
+      contact: { name: "", email: "", phone: "", location: "", linkedin: "", github: "" },
+      summary: "",
+      skills: { languages: [], frameworks: [], tools_and_platforms: [], concepts: [] },
+      experience: [],
+      education: [],
+      projects: [],
+      certifications: [],
+    };
+  }
+
+  const rawSkills = raw.skills && typeof raw.skills === "object" ? raw.skills : {};
+
+  const cleanArray = (val: any): string[] => {
+    if (Array.isArray(val)) {
+      return val.filter((item) => typeof item === "string" && item.trim()).map((s) => s.trim());
+    }
+    if (typeof val === "string" && val.trim()) {
+      return val.split(",").map((s) => s.trim()).filter(Boolean);
+    }
+    return [];
+  };
+
+  // Collect tools and platforms from tools_and_platforms, tools, cloud, or platforms
+  const toolsAndPlatforms: string[] = [
+    ...cleanArray(rawSkills.tools_and_platforms),
+    ...cleanArray(rawSkills.tools),
+    ...cleanArray(rawSkills.cloud),
+    ...cleanArray(rawSkills.platforms),
+    ...cleanArray(rawSkills.devops),
+  ];
+
+  const skills: TechnicalSkills = {
+    languages: cleanArray(rawSkills.languages),
+    frameworks: cleanArray(rawSkills.frameworks || rawSkills.libraries),
+    tools_and_platforms: Array.from(new Set(toolsAndPlatforms)),
+    concepts: cleanArray(rawSkills.concepts || rawSkills.methodologies || rawSkills.core_competencies),
+  };
+
+  const contact: ContactInfo = {
+    name: typeof raw.contact?.name === "string" ? raw.contact.name : "",
+    email: typeof raw.contact?.email === "string" ? raw.contact.email : "",
+    phone: typeof raw.contact?.phone === "string" ? raw.contact.phone : "",
+    location: typeof raw.contact?.location === "string" ? raw.contact.location : "",
+    linkedin: typeof raw.contact?.linkedin === "string" ? raw.contact.linkedin : "",
+    github: typeof raw.contact?.github === "string" ? raw.contact.github : "",
+  };
+
+  const summary = typeof raw.summary === "string" ? raw.summary : "";
+
+  const experience: ExperienceItem[] = Array.isArray(raw.experience)
+    ? raw.experience.map((e: any, idx: number) => ({
+        id: typeof e?.id === "string" ? e.id : `exp-${idx + 1}`,
+        company: typeof e?.company === "string" ? e.company : (e?.employer || "Company"),
+        role: typeof e?.role === "string" ? e.role : (e?.title || "Role"),
+        location: typeof e?.location === "string" ? e.location : "",
+        dates: typeof e?.dates === "string" ? e.dates : (e?.start_date ? `${e.start_date} - ${e.end_date || "Present"}` : ""),
+        bullets: Array.isArray(e?.bullets)
+          ? e.bullets.filter((b: any) => typeof b === "string")
+          : (typeof e?.bullet === "string" ? [e.bullet] : []),
+      }))
+    : [];
+
+  const education: EducationItem[] = Array.isArray(raw.education)
+    ? raw.education.map((ed: any, idx: number) => ({
+        id: typeof ed?.id === "string" ? ed.id : `edu-${idx + 1}`,
+        institution: typeof ed?.institution === "string" ? ed.institution : (ed?.school || ed?.university || ""),
+        degree: typeof ed?.degree === "string" ? ed.degree : "",
+        location: typeof ed?.location === "string" ? ed.location : "",
+        dates: typeof ed?.dates === "string" ? ed.dates : (ed?.graduation_year ? String(ed.graduation_year) : (ed?.year || "")),
+        details: typeof ed?.details === "string" ? ed.details : "",
+      }))
+    : [];
+
+  const projects: ProjectItem[] = Array.isArray(raw.projects)
+    ? raw.projects.map((p: any, idx: number) => ({
+        id: typeof p?.id === "string" ? p.id : `proj-${idx + 1}`,
+        name: typeof p?.name === "string" ? p.name : (p?.title || `Project ${idx + 1}`),
+        technologies: cleanArray(p?.technologies || p?.tech_stack),
+        bullets: Array.isArray(p?.bullets)
+          ? p.bullets.filter((b: any) => typeof b === "string")
+          : (typeof p?.bullet === "string" ? [p.bullet] : []),
+      }))
+    : [];
+
+  const certifications: string[] = cleanArray(raw.certifications);
+
+  return {
+    contact,
+    summary,
+    skills,
+    experience,
+    education,
+    projects,
+    certifications,
+  };
+}
+

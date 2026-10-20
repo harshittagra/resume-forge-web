@@ -272,7 +272,7 @@ export default function ExportView({ resume, result, onNavigate }: ExportViewPro
             </h2>
             <div className="text-xs space-y-0.5 text-gray-800">
               {Object.entries(activeResume.skills).map(([cat, list]) =>
-                list?.length ? (
+                Array.isArray(list) && list.length ? (
                   <p key={cat}>
                     <strong>{cat.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}:</strong>{" "}
                     {list.join(", ")}

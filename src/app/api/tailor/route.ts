@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Groq from "groq-sdk";
-import { MasterResume, TailoredResult } from "@/types/resume";
+import { MasterResume, TailoredResult, normalizeResume } from "@/types/resume";
 import { calculateATSScore } from "@/lib/scoring";
 
 export const maxDuration = 60;
@@ -77,9 +77,11 @@ ${jobDescription.slice(0, 4000)}
       ...(jdReqs.required_skills || []),
     ];
 
+    const safeResume = normalizeResume(masterResume);
+
     // Compute ATS Score Before
     const scoreBefore = calculateATSScore(
-      masterResume,
+      safeResume,
       jdKeywords,
       jdReqs.required_skills || []
     );
@@ -155,7 +157,7 @@ Return ONLY valid JSON.
     }
 
     // Assemble the tailored master resume
-    const tailoredResume: MasterResume = JSON.parse(JSON.stringify(masterResume));
+    const tailoredResume: MasterResume = JSON.parse(JSON.stringify(safeResume));
     if (tailoredData.tailored_summary) {
       tailoredResume.summary = tailoredData.tailored_summary;
     }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { extractText } from "unpdf";
 import mammoth from "mammoth";
 import Groq from "groq-sdk";
-import { MasterResume } from "@/types/resume";
+import { MasterResume, normalizeResume } from "@/types/resume";
 
 export const maxDuration = 45;
 
@@ -16,7 +16,7 @@ function parseResumeHeuristics(rawText: string, filename: string): MasterResume 
   const linkedinMatch = rawText.match(/linkedin\.com\/in\/[\w-]+/);
   const githubMatch = rawText.match(/github\.com\/[\w-]+/);
 
-  return {
+  return normalizeResume({
     contact: {
       name,
       email: emailMatch ? emailMatch[0] : "",
@@ -36,7 +36,7 @@ function parseResumeHeuristics(rawText: string, filename: string): MasterResume 
     education: [],
     projects: [],
     certifications: [],
-  };
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -116,8 +116,8 @@ Extract the candidate's resume information into this EXACT JSON structure:
   "skills": {
     "languages": ["Python", "TypeScript", etc],
     "frameworks": ["React", "Next.js", etc],
-    "tools": ["Docker", "Git", etc],
-    "cloud": ["AWS", "GCP", etc]
+    "tools_and_platforms": ["Docker", "Git", "AWS", "PostgreSQL", etc],
+    "concepts": ["Microservices", "REST APIs", etc]
   },
   "experience": [
     {
@@ -125,8 +125,7 @@ Extract the candidate's resume information into this EXACT JSON structure:
       "company": "Company Name",
       "role": "Job Title",
       "location": "Location",
-      "start_date": "MM/YYYY",
-      "end_date": "Present or MM/YYYY",
+      "dates": "MM/YYYY - MM/YYYY or Present",
       "bullets": ["Bullet 1", "Bullet 2"]
     }
   ],
@@ -135,7 +134,7 @@ Extract the candidate's resume information into this EXACT JSON structure:
       "id": "edu-1",
       "institution": "University Name",
       "degree": "Degree and Major",
-      "graduation_year": "YYYY"
+      "dates": "YYYY or MM/YYYY - MM/YYYY"
     }
   ],
   "projects": [
@@ -162,7 +161,8 @@ ${extractedText.slice(0, 7000)}
         });
 
         const content = response.choices[0]?.message?.content || "{}";
-        parsedResume = JSON.parse(content);
+        const rawJson = JSON.parse(content);
+        parsedResume = normalizeResume(rawJson);
       } catch (aiErr) {
         console.warn("AI parsing fallback to heuristic:", aiErr);
         parsedResume = parseResumeHeuristics(extractedText, filename);

@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { UploadCloud, FileText, CheckCircle2, AlertCircle, X, Loader2 } from "lucide-react";
-import { MasterResume } from "@/types/resume";
+import { MasterResume, normalizeResume } from "@/types/resume";
 
 interface ResumeDropzoneProps {
   currentResume: MasterResume;
@@ -57,7 +57,7 @@ export default function ResumeDropzone({
       }
 
       setUploadedFilename(file.name);
-      onResumeLoaded(data.parsedResume, file.name);
+      onResumeLoaded(normalizeResume(data.parsedResume), file.name);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to parse file.");
     } finally {
@@ -93,10 +93,14 @@ export default function ResumeDropzone({
 
   const hasName = Boolean(currentResume?.contact?.name);
   const expCount = currentResume?.experience?.length || 0;
+  const s = (currentResume?.skills || {}) as any;
   const skillsCount =
-    (currentResume?.skills?.languages?.length || 0) +
-    (currentResume?.skills?.frameworks?.length || 0) +
-    (currentResume?.skills?.tools_and_platforms?.length || 0);
+    (s.languages?.length || 0) +
+    (s.frameworks?.length || 0) +
+    (s.tools_and_platforms?.length || 0) +
+    (s.tools?.length || 0) +
+    (s.cloud?.length || 0) +
+    (s.concepts?.length || 0);
 
   return (
     <div className="w-full">

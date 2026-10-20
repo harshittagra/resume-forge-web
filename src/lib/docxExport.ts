@@ -91,10 +91,10 @@ export async function generateDocxResume(resume: MasterResume): Promise<Blob> {
 
   // Technical Skills
   const skillEntries = Object.entries(resume.skills || {});
-  if (skillEntries.some(([, list]) => list && list.length > 0)) {
+  if (skillEntries.some(([, list]) => Array.isArray(list) && list.length > 0)) {
     addHeading("Technical Skills");
     skillEntries.forEach(([category, list]) => {
-      if (list && list.length > 0) {
+      if (Array.isArray(list) && list.length > 0) {
         sections.push(
           new Paragraph({
             spacing: { after: 60 },

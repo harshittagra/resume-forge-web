@@ -15,7 +15,7 @@ import LinkedInView from "@/components/LinkedInView";
 import InterviewPrepView from "@/components/InterviewPrepView";
 import ApiKeyModal from "@/components/ApiKeyModal";
 import { SAMPLE_MASTER_RESUME } from "@/lib/sampleResume";
-import { MasterResume, TailoredResult, HistoryEntry } from "@/types/resume";
+import { MasterResume, TailoredResult, HistoryEntry, normalizeResume } from "@/types/resume";
 
 export default function Home() {
   const [currentTab, setCurrentTab] = useState<NavTab>("dashboard");
@@ -30,7 +30,7 @@ export default function Home() {
     try {
       const savedResume = localStorage.getItem("resumeforge_resume");
       if (savedResume) {
-        setMasterResume(JSON.parse(savedResume));
+        setMasterResume(normalizeResume(JSON.parse(savedResume)));
       }
 
       const savedHistory = localStorage.getItem("resumeforge_history");
@@ -48,9 +48,10 @@ export default function Home() {
   }, []);
 
   const handleSaveResume = (updated: MasterResume) => {
-    setMasterResume(updated);
+    const normalized = normalizeResume(updated);
+    setMasterResume(normalized);
     try {
-      localStorage.setItem("resumeforge_resume", JSON.stringify(updated));
+      localStorage.setItem("resumeforge_resume", JSON.stringify(normalized));
     } catch (e) {
       console.error(e);
     }

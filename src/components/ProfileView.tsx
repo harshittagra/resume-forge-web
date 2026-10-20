@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   User,
   Mail,
@@ -18,7 +18,7 @@ import {
   FolderGit2,
   Cpu,
 } from "lucide-react";
-import { MasterResume, ExperienceItem, ProjectItem } from "@/types/resume";
+import { MasterResume, ExperienceItem, ProjectItem, normalizeResume } from "@/types/resume";
 
 interface ProfileViewProps {
   resume: MasterResume;
@@ -31,25 +31,32 @@ export default function ProfileView({
   onSave,
   onLoadSample,
 }: ProfileViewProps) {
-  const [form, setForm] = useState<MasterResume>(resume);
+  const [form, setForm] = useState<MasterResume>(() => normalizeResume(resume));
   const [savedAlert, setSavedAlert] = useState(false);
   const [newSkillCat, setNewSkillCat] = useState<keyof MasterResume["skills"]>("languages");
   const [newSkillText, setNewSkillText] = useState("");
 
+  useEffect(() => {
+    if (resume) {
+      setForm(normalizeResume(resume));
+    }
+  }, [resume]);
+
   const handleSave = () => {
-    onSave(form);
+    const normalized = normalizeResume(form);
+    onSave(normalized);
     setSavedAlert(true);
     setTimeout(() => setSavedAlert(false), 3000);
   };
 
   const addSkill = () => {
     if (!newSkillText.trim()) return;
-    const currentList = form.skills[newSkillCat] || [];
+    const currentList = form.skills?.[newSkillCat] || [];
     if (!currentList.includes(newSkillText.trim())) {
       setForm({
         ...form,
         skills: {
-          ...form.skills,
+          ...(form.skills || { languages: [], frameworks: [], tools_and_platforms: [], concepts: [] }),
           [newSkillCat]: [...currentList, newSkillText.trim()],
         },
       });
@@ -61,8 +68,8 @@ export default function ProfileView({
     setForm({
       ...form,
       skills: {
-        ...form.skills,
-        [cat]: (form.skills[cat] || []).filter((s) => s !== skill),
+        ...(form.skills || { languages: [], frameworks: [], tools_and_platforms: [], concepts: [] }),
+        [cat]: (form.skills?.[cat] || []).filter((s) => s !== skill),
       },
     });
   };
@@ -299,7 +306,7 @@ export default function ProfileView({
                 {cat.replace(/_/g, " ")}
               </span>
               <div className="flex flex-wrap gap-1.5">
-                {(form.skills[cat] || []).map((skill) => (
+                {((form.skills && form.skills[cat]) || []).map((skill) => (
                   <span
                     key={skill}
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-medium"

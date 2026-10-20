@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Groq from "groq-sdk";
-import { MasterResume, ScanResult } from "@/types/resume";
+import { MasterResume, ScanResult, normalizeResume } from "@/types/resume";
 import { calculateATSScore, generateKeywordHeatmap } from "@/lib/scoring";
 
 export const maxDuration = 30;
@@ -76,16 +76,18 @@ ${jobDescription.slice(0, 4000)}
       ...(jdReqs.required_skills || []),
     ];
 
+    const safeResume = normalizeResume(masterResume);
+
     // Compute ATS Score
     const score = calculateATSScore(
-      masterResume,
+      safeResume,
       jdKeywords,
       jdReqs.required_skills || []
     );
 
     // Generate keyword heatmap
     const keywordHeatmap = generateKeywordHeatmap(
-      masterResume,
+      safeResume,
       jdKeywords,
       jdReqs.required_skills || [],
       jdReqs.nice_to_have_skills || []
