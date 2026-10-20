@@ -14,6 +14,7 @@ import {
   Zap,
 } from "lucide-react";
 import ScoreGauge from "./ScoreGauge";
+import ResumeDropzone from "./ResumeDropzone";
 import { MasterResume, TailoredResult } from "@/types/resume";
 
 interface TailorViewProps {
@@ -22,6 +23,7 @@ interface TailorViewProps {
   onTailored: (result: TailoredResult) => void;
   onNavigate: (tab: "diff" | "skills" | "export") => void;
   customApiKey?: string;
+  onResumeUpdate?: (resume: MasterResume) => void;
 }
 
 const SAMPLE_JD = `Senior Full-Stack & AI Systems Engineer
@@ -48,6 +50,7 @@ export default function TailorView({
   onTailored,
   onNavigate,
   customApiKey,
+  onResumeUpdate,
 }: TailorViewProps) {
   const [jdText, setJdText] = useState(SAMPLE_JD);
   const [loading, setLoading] = useState(false);
@@ -114,26 +117,44 @@ export default function TailorView({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Job Description Textarea */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="p-6 rounded-3xl bg-slate-900/40 border border-indigo-500/15 backdrop-blur-xl space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold uppercase tracking-wider text-indigo-300 flex items-center gap-2">
-                <FileText className="w-4 h-4" /> Paste Job Description
-              </label>
-              <button
-                onClick={() => setJdText(SAMPLE_JD)}
-                className="text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
-              >
-                <RotateCcw className="w-3 h-3" /> Load Sample JD
-              </button>
+          <div className="p-6 rounded-3xl bg-slate-900/40 border border-indigo-500/15 backdrop-blur-xl space-y-4">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-indigo-300 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-indigo-400" /> 1. Upload or Active Resume
+                </label>
+                <span className="text-[11px] text-slate-400 font-mono">PDF, DOCX, TXT</span>
+              </div>
+              <ResumeDropzone
+                currentResume={resume}
+                onResumeLoaded={(res) => onResumeUpdate?.(res)}
+                customApiKey={customApiKey}
+                compact
+              />
             </div>
 
-            <textarea
-              rows={14}
-              value={jdText}
-              onChange={(e) => setJdText(e.target.value)}
-              placeholder="Paste job title, requirements, responsibilities, and qualifications..."
-              className="w-full p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none leading-relaxed font-mono resize-y"
-            />
+            <div className="pt-2 border-t border-slate-800">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-indigo-300 flex items-center gap-2">
+                  <Target className="w-4 h-4 text-purple-400" /> 2. Target Job Description
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setJdText(SAMPLE_JD)}
+                  className="text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
+                >
+                  <RotateCcw className="w-3 h-3" /> Load Sample JD
+                </button>
+              </div>
+
+              <textarea
+                rows={10}
+                value={jdText}
+                onChange={(e) => setJdText(e.target.value)}
+                placeholder="Paste job title, requirements, responsibilities, and qualifications..."
+                className="w-full p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none leading-relaxed font-mono resize-y"
+              />
+            </div>
 
             {error && (
               <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">

@@ -136,6 +136,7 @@ export default function Home() {
             resume={masterResume}
             onNavigate={(tab) => setCurrentTab(tab as NavTab)}
             customApiKey={customApiKey}
+            onResumeUpdate={handleSaveResume}
           />
         )}
 
@@ -146,6 +147,7 @@ export default function Home() {
             onTailored={handleTailored}
             onNavigate={(tab) => setCurrentTab(tab as NavTab)}
             customApiKey={customApiKey}
+            onResumeUpdate={handleSaveResume}
           />
         )}
 
